@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C4K</title>
+    
+    <style>
+        td {
+            width: 50px;
+            height: 50px;
+            border: 1px solid #000;
+            text-align: center;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        .red-piece {
+            background-color: red;
+            border-radius: 50%;
+        }
+        
+        .yellow-piece {
+            background-color: yellow;
+            border-radius: 50%;
+        }
+        
+        table {
+            border-collapse: collapse;
+            margin: 20px;
+        }
+    </style>
+    </head>
+    <body>
+        <h1>C4K</h1>
+        <h4 id='description'>Connect four thousand dots horizontally, vertically or diagonally to win.</h4>
+        <button id='toggle_lang' onclick="toggleLang()">PT</button>
+
+    <table id="grid">
+    </table>
+
+    <script>
+        class Player {
+            constructor(rows, columns, name) {
+                this.name = name;
+                this.bitmap = [];
+                for (let i = 0; i < rows * columns; i++) {
+                    this.bitmap.push(0);
+                }
+            }
+
+            getAt(row, column) {
+                return this.bitmap[row * column + column];
+            }
+
+            setAt(row, column) {
+                this.bitmap[row * column + column];
+            }
+        }
+        const rows = 4000;
+        const cols = 7;
+
+        var player_one;
+        var player_two;
+        var players;
+        var turn;
+        var over;
+
+        var inEnglish = true;
+
+        function toggleLang() {
+            let buttonText;
+            let description;
+            
+            if (inEnglish) {
+                buttonText = 'EN';
+                description = 'Conecte quatro mil pontos horizontalmente, verticalmente ou diagonalmente para ganhar.';
+            } else {
+                buttonText = 'PT';
+                description = 'Connect four thousand dots horizontally, vertically or diagonally to win.';
+            }
+
+            inEnglish = !inEnglish;
+
+            document.getElementById('toggle_lang').innerHTML = buttonText;
+            document.getElementById('description').innerHTML = description;
+        }
+
+        // Function to generate the Connect Four grid
+        function generateGrid() {
+            const grid = document.getElementById("grid");
+            while (grid.firstChild) {
+                grid.removeChild(grid.firstChild);
+            }
+
+            for (let i = 0; i < rows; i++) {
+                const row = document.createElement("tr");
+
+                for (let j = 0; j < cols; j++) {
+                    const cell = document.createElement("td");
+                    cell.id = `cell_${i}_${j}`;
+                    cell.addEventListener("click", () => onCellClick(i, j));
+                    row.appendChild(cell);
+                }
+
+                grid.appendChild(row);
+            }
+            
+            player_one = new Player(rows, cols, 'Red');
+            player_two = new Player(rows, cols, 'Yellow');
+            players = [player_one, player_two];
+        }
+        
+        function onCellClick(row, col) {
+            if (over == 1) {
+                startGame();
+            } else {
+                placed = placeAt(col, players[turn]);
+                if (placed) {
+                    turn = turn == 0 ? 1 : 0;
+                }
+            }
+        }
+
+        function placeAt(column, player) {
+            grid = getGridBitmap();
+            
+            lowest = -1;
+            for (let i = column; i < grid.length; i += cols) {
+                if (grid[i] == 0) {
+                    lowest = Math.max(lowest, i);
+                }
+            }
+
+            if (lowest != -1) {
+                player.bitmap[lowest] = 1;
+                row = Math.floor(lowest / cols)
+                document.getElementById(`cell_${row}_${column}`)
+                .classList.add(turn == 0 ? 'red-piece' : 'yellow-piece');
+                
+                game_over = checkForWin(players[turn].bitmap, rows, cols, 4000);
+
+                if (game_over) {
+                    alert(`${players[turn].name} won!`);
+                    over = 1;
+                }
+                return true;
+            } return false;
+        }
+
+        function getGridBitmap() {
+            output = [];
+            for (let i = 0; i < player_one.bitmap.length; i++) {
+                output.push(player_one.bitmap[i] || player_two.bitmap[i]);
+            }
+            return output;
+        }
+
+        function checkForWin(bitmap, rows, cols, consecutiveCount) {
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j <= cols - consecutiveCount; j++) {
+                    const slice = bitmap.slice(i * cols + j, i * cols + j + consecutiveCount);
+                    if (slice.every(cell => cell === 1)) {
+                        return true;
+                    }
+                }
+            }
+
+            for (let i = 0; i <= rows - consecutiveCount; i++) {
+                for (let j = 0; j < cols; j++) {
+                    const slice = [];
+                    for (let k = 0; k < consecutiveCount; k++) {
+                        slice.push(bitmap[(i + k) * cols + j]);
+                    }
+                    if (slice.every(cell => cell === 1)) {
+                        return true;
+                    }
+                }
+            }
+
+            for (let i = 0; i <= rows - consecutiveCount; i++) {
+                for (let j = 0; j <= cols - consecutiveCount; j++) {
+                    const slice = [];
+                    for (let k = 0; k < consecutiveCount; k++) {
+                        slice.push(bitmap[(i + k) * cols + (j + k)]);
+                    }
+                    if (slice.every(cell => cell === 1)) {
+                        return true;
+                    }
+                }
+            }
+
+            for (let i = 0; i <= rows - consecutiveCount; i++) {
+                for (let j = consecutiveCount - 1; j < cols; j++) {
+                    const slice = [];
+                    for (let k = 0; k < consecutiveCount; k++) {
+                        slice.push(bitmap[(i + k) * cols + (j - k)]);
+                    }
+                    if (slice.every(cell => cell === 1)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        function startGame(debug=false) {
+            generateGrid();
+            turn = 0;
+            over = 0;
+
+            if (debug == true) {
+                    for (let i = 14; i < player_one.bitmap.length; i += cols) {
+                        player_one.bitmap[i] = 1;
+                        document.getElementById(`cell_${Math.floor(i / cols)}_${i % cols}`)
+                        .classList.add('red-piece');
+                    }
+                    
+                for (let i = 15; i < player_two.bitmap.length; i += cols) {
+                    player_two.bitmap[i] = 1;
+                    document.getElementById(`cell_${Math.floor(i / cols)}_${i % cols}`)
+                    .classList.add('yellow-piece');
+                }
+            }
+        }
+        
+        window.onload = startGame;
+        </script>
+</body>
+</html>
